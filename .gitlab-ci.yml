@@ -1,0 +1,62 @@
+image:
+  name: maxmur/compose:1.29.2
+
+services:
+  - name: docker:20.10.17-dind
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_CERT_PATH: "/certs/client/"
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_VERIFY: 1
+
+stages:
+  - pre-build
+  - build
+  - post-build
+  - test
+  - deploy
+
+sast:
+  stage: pre-build
+  script:
+    - >
+      docker run -v /var/run/docker.sock:/var/run/docker.sock 
+      -v $(pwd):/src/horusec horuszup/horusec-cli:latest 
+      horusec start -p /src/horusec/ -P $(pwd) -s="LOW"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+# deploy-iac:
+#   stage: deploy
+#   needs: [sast]
+#   before_script:
+#     - apk add openssh
+#     - eval $(ssh-agent -s)
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+#     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+#     - export ANSIBLE_HOST_KEY_CHECKING=False
+#   script:
+#     - >
+#       ansible-playbook -i ./inventory/$ANSIBLE_INVENTORY_FOLDER/inventory.ini
+#       --extra-vars "sudo_password=$SERVER_PASSWORD"
+#       --extra-vars "role_id=$ROLE_ID"
+#       --extra-vars "secret_id=$SECRET_ID"
+#       ./update.yml
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == "master"
+#       variables:
+#         SSH_PRIVATE_KEY: $PROD_MAIN_SERVER_SSH_KEY
+#         SERVER_PASSWORD: $PROD_USER_PASS
+#         ROLE_ID: $PROD_VAULT_ROLE_ID
+#         SECRET_ID: $PROD_VAULT_SECRET_ID
+#         ANSIBLE_INVENTORY_FOLDER: "production"
+#     - if: $CI_COMMIT_BRANCH == "develop"
+#       variables:
+#         SSH_PRIVATE_KEY: $DEV_MAIN_SERVER_SSH_KEY
+#         SERVER_PASSWORD: $DEV_MAIN_SERVER_USER_PASS
+#         ROLE_ID: $DEV_VAULT_ROLE_ID
+#         SECRET_ID: $DEV_VAULT_SECRET_ID
+#         ANSIBLE_INVENTORY_FOLDER: "staging"

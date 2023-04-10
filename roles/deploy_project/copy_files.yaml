@@ -1,0 +1,6 @@
+---
+- name: Copy docker compose file
+  ansible.builtin.copy:
+    src: "docker-compose.yaml"
+    dest: "{{ docker_path }}"
+    mode: '0600'
