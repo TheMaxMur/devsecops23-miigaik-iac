@@ -38,7 +38,7 @@ build-nginx-image:
     - docker push $CI_REGISTRY_IMAGE/nginx_fond_of_dora:local
     - >
       ansible-playbook --extra-vars "templates_path=$(pwd)/templates"
-      --extra-vars "@./inventory/$ANSIBLE_INVENTORY_FOLDER/group_vars/main-server/vars.yml"
+      --extra-vars "@./inventory/$ANSIBLE_INVENTORY_FOLDER/group_vars/main-server/vars.yaml"
       ./generate-nginx-config.yml
     - cp ./templates/app.conf ./files/data/nginx/
     - docker build -t $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$CI_COMMIT_SHORT_SHA -f ./files/Dockerfiles/Nginx/Dockerfile ./files/
@@ -71,7 +71,7 @@ deploy-iac:
       --extra-vars "sudo_password=$SERVER_PASSWORD"
       --extra-vars "role_id=$ROLE_ID"
       --extra-vars "secret_id=$SECRET_ID"
-      ./update.yml
+      ./update.yaml
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       variables:
