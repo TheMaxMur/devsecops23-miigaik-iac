@@ -38,7 +38,7 @@ build-nginx-image:
     - docker push $CI_REGISTRY_IMAGE/nginx_fond_of_dora:local
     - >
       ansible-playbook --extra-vars "templates_path=$(pwd)/templates"
-      --extra-vars "@./inventory/$ANSIBLE_INVENTORY_FOLDER/group_vars/main-server/vars.yaml"
+      --extra-vars "@./inventory/$ANSIBLE_INVENTORY_FOLDER/group_vars/main_server/vars.yaml"
       ./generate-nginx-config.yml
     - cp ./templates/app.conf ./files/data/nginx/
     - docker build -t $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$CI_COMMIT_SHORT_SHA -f ./files/Dockerfiles/Nginx/Dockerfile ./files/
