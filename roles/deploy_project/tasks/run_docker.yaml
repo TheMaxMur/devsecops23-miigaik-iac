@@ -17,6 +17,8 @@
     DB_PASS={{ db_password | quote }}
     DB_NAME={{ db_name | quote }}
     FLASK_SETTINGS_CLASS={{ flask_settings | quote }}
+    VAULT_ROLE_ID={{ role_id | quote }}
+    VAULT_SECRET_ID={{ secret_id | quote }}
     docker-compose up -d
   args:
     chdir: "{{ docker_path }}"
