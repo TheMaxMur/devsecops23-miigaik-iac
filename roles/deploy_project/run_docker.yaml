@@ -1,0 +1,23 @@
+---
+- name: Docker pull images
+  ansible.builtin.shell: >
+    NGINX_IMAGE={{ nginx_image | quote }}
+    FLASK_APP_IMAGE={{ flask_app | quote }}
+    docker-compose pull
+  args:
+    chdir: "{{ docker_path }}"
+  register: pull_output
+  changed_when: false
+
+- name: Docker compose up
+  ansible.builtin.shell: >
+    NGINX_IMAGE={{ nginx_image | quote }}
+    FLASK_APP_IMAGE={{ flask_app | quote }}
+    DB_USER={{ db_user | quote }}
+    DB_PASS={{ db_password | quote }}
+    DB_NAME={{ db_name | quote }}
+    docker-compose up -d
+  args:
+    chdir: "{{ docker_path }}"
+  register: up_output
+  changed_when: false

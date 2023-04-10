@@ -1,0 +1,9 @@
+---
+- name: Pull changes and apply
+  hosts: 127.0.0.1
+  tasks:
+    - name: Create app.conf file from template
+      ansible.builtin.template:
+        src: "{{ templates_path }}/{{ app_conf_jinja_filename }}"
+        dest: "{{ templates_path }}/app.conf"
+        mode: '0666'

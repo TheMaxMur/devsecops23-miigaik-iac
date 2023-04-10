@@ -1,18 +1,35 @@
 version: "3"
 services:
+  nginx:
+    image: ${NGINX_IMAGE:-registry.gitlab.devsecops.maxmur.info/devsecops/iac/nginx_fond_of_dora:latest}
+    container_name: nginx
+    restart: "always"
+    ports:
+      - "80:80"
+      - "443:443"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    networks:
+      frontend:
+        ipv4_address: 10.6.0.2
+      backend:
+        ipv4_address: 10.5.0.2
+
   flask_app:
     image: ${FLASK_APP_IMAGE:-registry.gitlab.devsecops.maxmur.info/devsecops/flask_app/flask_app:latest-dev}
     container_name: flask_app
     restart: "always"
     environment:
       - FLASK_APP=dip
-      - FLASK_SETTINGS=settings.DevConfig
+      - FLASK_SETTINGS=${FLASK_SETTINGS_CLASS:-settings.DevConfig}
     volumes:
       - user_images:/app/user_images
       - user_documents:/app/user_documents
       - user_md_files:/app/user_md_files
     expose:
       - "5000"
+    networks:
+      backend:
+        ipv4_address: 10.5.0.3
 
   db:
     image: registry.gitlab.devsecops.maxmur.info/devsecops/iac/postgres:14.4-alpine
@@ -21,14 +38,27 @@ services:
     volumes:
       - psql_volume:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=${STATIC_DB_USER:-admin}
-      - POSTGRES_PASSWORD=${STATIC_DB_PASS:-admin}
-      - POSTGRES_DB=${STATIC_DB_NAME:-static}
+      - POSTGRES_USER=${DB_USER:-admin}
+      - POSTGRES_PASSWORD=${DB_PASS:-admin}
+      - POSTGRES_DB=${DB_NAME:-static}
     expose:
       - "5432"
+    networks:
+      backend:
+        ipv4_address: 10.5.0.4
 
 volumes:
   psql_volume:
   user_images:
   user_documents:
   user_md_files:
+
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+  frontend:
+    ipam:
+      config:
+        - subnet: 10.6.0.0/16

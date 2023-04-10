@@ -4,3 +4,4 @@ domain: dev.devsecops.maxmur.info
 docker_path: /home/stage-devsecops23/iac/
 app_conf_jinja_filename: app.conf.j2
 init_letsencrypt_jinja_filename: init-letsencrypt.sh.j2
+flask_settings: settings.DevConfig

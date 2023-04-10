@@ -1,0 +1,14 @@
+---
+- name: Took vault token
+  ansible.builtin.shell: >
+    set -o pipefail && curl -X POST {{ vault_address }}/v1/auth/approle/login -d
+    '{"role_id":"{{ role_id }}", "secret_id":
+    "{{ secret_id }}"}' | jq -r ".auth.client_token"
+  args:
+    executable: /bin/bash
+  register: vault_app_role_token
+  changed_when: false
+
+- name: Set Vault token var
+  ansible.builtin.set_fact:
+    vault_token: "{{ vault_app_role_token.stdout }}"

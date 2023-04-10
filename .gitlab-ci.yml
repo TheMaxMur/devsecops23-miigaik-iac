@@ -25,38 +25,65 @@ sast:
       -v $(pwd):/src/horusec horuszup/horusec-cli:latest 
       horusec start -p /src/horusec/ -P $(pwd) -s="LOW"
   rules:
-    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "develop"
 
-# deploy-iac:
-#   stage: deploy
-#   needs: [sast]
-#   before_script:
-#     - apk add openssh
-#     - eval $(ssh-agent -s)
-#     - mkdir -p ~/.ssh
-#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-#     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-#     - export ANSIBLE_HOST_KEY_CHECKING=False
-#   script:
-#     - >
-#       ansible-playbook -i ./inventory/$ANSIBLE_INVENTORY_FOLDER/inventory.ini
-#       --extra-vars "sudo_password=$SERVER_PASSWORD"
-#       --extra-vars "role_id=$ROLE_ID"
-#       --extra-vars "secret_id=$SECRET_ID"
-#       ./update.yml
-#   rules:
-#     - if: $CI_COMMIT_BRANCH == "master"
-#       variables:
-#         SSH_PRIVATE_KEY: $PROD_MAIN_SERVER_SSH_KEY
-#         SERVER_PASSWORD: $PROD_USER_PASS
-#         ROLE_ID: $PROD_VAULT_ROLE_ID
-#         SECRET_ID: $PROD_VAULT_SECRET_ID
-#         ANSIBLE_INVENTORY_FOLDER: "production"
-#     - if: $CI_COMMIT_BRANCH == "develop"
-#       variables:
-#         SSH_PRIVATE_KEY: $DEV_MAIN_SERVER_SSH_KEY
-#         SERVER_PASSWORD: $DEV_MAIN_SERVER_USER_PASS
-#         ROLE_ID: $DEV_VAULT_ROLE_ID
-#         SECRET_ID: $DEV_VAULT_SECRET_ID
-#         ANSIBLE_INVENTORY_FOLDER: "staging"
+build-nginx-image:
+  stage: build
+  needs: [sast]
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/nginx_fond_of_dora:local -f ./files/Dockerfiles/Nginx/Dockerfile ./files/
+    - docker push $CI_REGISTRY_IMAGE/nginx_fond_of_dora:local
+    - >
+      ansible-playbook --extra-vars "templates_path=$(pwd)/templates"
+      --extra-vars "@./inventory/$ANSIBLE_INVENTORY_FOLDER/group_vars/main-server/vars.yml"
+      ./generate-nginx-config.yml
+    - cp ./templates/app.conf ./files/data/nginx/
+    - docker build -t $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$CI_COMMIT_SHORT_SHA -f ./files/Dockerfiles/Nginx/Dockerfile ./files/
+    - docker push $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$CI_COMMIT_SHORT_SHA
+    - docker tag $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$IMAGE_TAG
+    - docker push $CI_REGISTRY_IMAGE/nginx_fond_of_dora:$IMAGE_TAG
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        IMAGE_TAG: "latest"
+        ANSIBLE_INVENTORY_FOLDER: "prod"
+    - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        IMAGE_TAG: "latest-dev"
+        ANSIBLE_INVENTORY_FOLDER: "stage"
+
+deploy-iac:
+  stage: deploy
+  needs: [sast]
+  before_script:
+    - apk add openssh
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+  script:
+    - >
+      ansible-playbook -i ./inventory/$ANSIBLE_INVENTORY_FOLDER/inventory.ini
+      --extra-vars "sudo_password=$SERVER_PASSWORD"
+      --extra-vars "role_id=$ROLE_ID"
+      --extra-vars "secret_id=$SECRET_ID"
+      ./update.yml
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        SSH_PRIVATE_KEY: $PROD_MAIN_SERVER_SSH_KEY
+        SERVER_PASSWORD: $PROD_MAIN_SERVER_USER_PASS
+        ROLE_ID: $PROD_VAULT_ROLE_ID
+        SECRET_ID: $PROD_VAULT_SECRET_ID
+        ANSIBLE_INVENTORY_FOLDER: "prod"
+    - if: $CI_COMMIT_BRANCH == "develop"
+      variables:
+        SSH_PRIVATE_KEY: $DEV_MAIN_SERVER_SSH_KEY
+        SERVER_PASSWORD: $DEV_MAIN_SERVER_USER_PASS
+        ROLE_ID: $DEV_VAULT_ROLE_ID
+        SECRET_ID: $DEV_VAULT_SECRET_ID
+        ANSIBLE_INVENTORY_FOLDER: "stage"
