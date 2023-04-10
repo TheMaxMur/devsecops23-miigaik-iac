@@ -36,6 +36,8 @@ services:
     environment:
       - FLASK_APP=dip
       - FLASK_SETTINGS=${FLASK_SETTINGS_CLASS:-settings.DevConfig}
+      - ROLE_ID=${VAULT_ROLE_ID:-null}
+      - SECRET_ID=${VAULT_SECRET_ID:-null}
     volumes:
       - user_images:/app/user_images
       - user_documents:/app/user_documents
