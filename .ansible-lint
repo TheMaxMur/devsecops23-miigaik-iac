@@ -1,6 +1,7 @@
 ---
 warn_list:
     - command-instead-of-module
+    - yaml[line-length]
     # - experimental
     # - risky-shell-pipe
     # - no-changed-when
