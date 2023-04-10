@@ -1,14 +1,19 @@
-FROM nginx:1.23.1-alpine
+FROM registry.gitlab.devsecops.maxmur.info/devsecops/iac/nginx_modsecurity:dora
 
-COPY ./data/nginx/app.conf /etc/nginx/conf.d/default.conf
-COPY ./data/nginx/nginx.conf /etc/nginx/nginx.conf
+RUN rm -rf /usr/local/openresty/nginx/conf/conf.d/*
 
-RUN chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/
+COPY ./data/nginx/app.conf /usr/local/openresty/nginx/conf/conf.d/default.conf
+COPY ./data/nginx/options-ssl-nginx.conf /options-ssl-nginx.conf
+COPY ./data/nginx/ssl-dhparams.pem /ssl-dhparams.pem
 
-USER nginx
+USER 0
+
+RUN chown -R 1001:1001 /usr/local/openresty/ && \
+    chown 1001:1001 /options-ssl-nginx.conf && \
+    chown 1001:1001 /ssl-dhparams.pem
+
+USER 1001
 
 EXPOSE 80/tcp
 
-CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
+CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]

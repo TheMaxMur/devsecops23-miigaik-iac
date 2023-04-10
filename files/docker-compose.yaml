@@ -8,11 +8,26 @@ services:
       - "80:80"
       - "443:443"
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    volumes:
+      - letsencrypt_cert:/etc/letsencrypt
+      - letsencrypt_data:/var/www/certbot
     networks:
       frontend:
         ipv4_address: 10.6.0.2
       backend:
         ipv4_address: 10.5.0.2
+
+  certbot:
+    image: certbot:latest
+    container_name: certbot
+    restart: "always"
+    volumes:
+      - letsencrypt_cert:/etc/letsencrypt
+      - letsencrypt_data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew && chown -R 1001:1001 /etc/letsencrypt; sleep 12h & wait $${!}; done;'"
+    networks:
+      backend:
+        ipv4_address: 10.5.0.6
 
   flask_app:
     image: ${FLASK_APP_IMAGE:-registry.gitlab.devsecops.maxmur.info/devsecops/flask_app/flask_app:latest-dev}
@@ -52,6 +67,8 @@ volumes:
   user_images:
   user_documents:
   user_md_files:
+  letsencrypt_cert:
+  letsencrypt_data:
 
 networks:
   backend:
