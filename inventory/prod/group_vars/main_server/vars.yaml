@@ -1,8 +1,9 @@
 user: gis-apd
 vault_address: https://vault.devsecops.maxmur.info
 domain: devsecops.maxmur.info
+vpn_domain: superdora.devsecops
 docker_path: /home/production-devsecops23/iac/
-app_conf_jinja_filename: app.conf.j2
+app_conf_jinja_filename: app_prod.conf.j2
 init_letsencrypt_jinja_filename: init-letsencrypt.sh.j2
 flask_settings: settings_prod.ProdConfig
 vault_folder: prod
